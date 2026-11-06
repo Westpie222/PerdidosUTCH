@@ -17,7 +17,6 @@ export const CustomBottomBar: React.FC = () => {
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       <View style={styles.bar}>
-        {/* Tab 1: Map (Compass) */}
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/map')}
           style={[styles.circleButton, isMap && styles.circleButtonActive]}
@@ -31,7 +30,6 @@ export const CustomBottomBar: React.FC = () => {
           />
         </TouchableOpacity>
 
-        {/* Tab 2: Social Feed / Community (User icon as in mockup) */}
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/feed')}
           style={[styles.circleButton, isFeed && styles.circleButtonActive]}
@@ -45,7 +43,6 @@ export const CustomBottomBar: React.FC = () => {
           />
         </TouchableOpacity>
 
-        {/* Tab 3: Settings (Sliders / Ajustes) */}
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/settings')}
           style={[styles.circleButton, isSettings && styles.circleButtonActive]}

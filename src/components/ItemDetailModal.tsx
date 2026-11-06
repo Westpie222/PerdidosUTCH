@@ -167,7 +167,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 </TouchableOpacity>
               </View>
 
-              {/* Comments Section */}
               <View style={styles.commentsSection}>
                 <Text style={styles.sectionHeader}>
                   Comentarios ({item.comments.length})
@@ -175,7 +174,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
 
                 {item.comments.length === 0 ? (
                   <Text style={styles.emptyComments}>
-                    Aún no hay comentarios. Si reconoces este objeto, ¡ayuda al estudiante comentando!
+                    Aún no hay comentarios. Si reconoces este objeto, habla con el estudiante.
                   </Text>
                 ) : (
                   item.comments.map((c) => (
