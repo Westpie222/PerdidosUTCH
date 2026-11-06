@@ -50,14 +50,6 @@ export const UTCH_CAMPUS_POINTS: CampusPoint[] = [
     type: 'commercial',
   },
   {
-    id: 'senor_camaron',
-    name: 'Señor Camarón',
-    shortLabel: 'Señor Camarón',
-    x: 78,
-    y: 11,
-    type: 'commercial',
-  },
-  {
     id: 'cafeteria',
     name: 'Cafetería Principal UTCH',
     shortLabel: 'Cafetería',

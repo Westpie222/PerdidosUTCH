@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { ItemType } from '../types';
 import { THEME } from '../constants/theme';
 import { UTCH_CAMPUS_POINTS } from '../constants/campusLocations';
@@ -23,42 +24,44 @@ interface PublishModalProps {
   onSuccess?: () => void;
 }
 
-const PRESET_PHOTOS = [
-  {
-    label: 'Mochila',
-    url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Credencial',
-    url: 'https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Calculadora',
-    url: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Termo',
-    url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Audífonos',
-    url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Llaves',
-    url: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=700&q=80',
-  },
-];
+async function requestAllPermissions(): Promise<string> {
+  // Request location permission
+  const locationResult = await Location.requestForegroundPermissionsAsync();
+  let coords = '';
+  if (locationResult.status === 'granted') {
+    try {
+      const loc = await Location.getCurrentPositionAsync({});
+      coords = `Lat: ${loc.coords.latitude.toFixed(4)}, Lon: ${loc.coords.longitude.toFixed(4)}`;
+    } catch {
+      // Silently fail if location not available
+    }
+  } else {
+    Alert.alert(
+      'Permiso de ubicación',
+      'Se requiere acceso a tu ubicación para registrar dónde se encontró/perdió el objeto.'
+    );
+  }
 
-const CATEGORIES = [
-  'Mochila',
-  'Credencial / Docs',
-  'Electrónica',
-  'Útiles Escolares',
-  'Accesorios / Termo',
-  'Ropa',
-  'Otros',
-];
+  // Request camera permission
+  const cameraResult = await ImagePicker.requestCameraPermissionsAsync();
+  if (cameraResult.status !== 'granted') {
+    Alert.alert(
+      'Permiso de cámara',
+      'Se requiere acceso a la cámara para tomar foto del objeto.'
+    );
+  }
+
+  // Request gallery permission
+  const galleryResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (galleryResult.status !== 'granted') {
+    Alert.alert(
+      'Permiso de galería',
+      'Se requiere acceso a tus fotos para adjuntar la imagen del objeto.'
+    );
+  }
+
+  return coords;
+}
 
 export const PublishModal: React.FC<PublishModalProps> = ({
   visible,
@@ -69,11 +72,51 @@ export const PublishModal: React.FC<PublishModalProps> = ({
 
   const [type, setType] = useState<ItemType>('found');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
   const [selectedLocation, setSelectedLocation] = useState(UTCH_CAMPUS_POINTS[0]);
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState(PRESET_PHOTOS[0].url);
+  const [imageUrl, setImageUrl] = useState('');
   const [phone, setPhone] = useState(user.phone || '');
+  const [locationText, setLocationText] = useState('');
+  const permissionsRequestedRef = useRef(false);
+
+  // Request permissions when modal becomes visible
+  React.useEffect(() => {
+    if (!visible || permissionsRequestedRef.current) return;
+    permissionsRequestedRef.current = true;
+
+    let cancelled = false;
+    requestAllPermissions().then((coords) => {
+      if (!cancelled && coords) {
+        setLocationText(coords);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [visible]);
+
+  const handleTakePhoto = async () => {
+    try {
+      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!cameraPermission.granted) {
+        Alert.alert(
+          'Permiso necesario',
+          'Se requiere permiso para acceder a la cámara y tomar foto del objeto.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]?.uri) {
+        setImageUrl(result.assets[0].uri);
+      }
+    } catch (e) {
+      console.warn('Error taking photo', e);
+    }
+  };
 
   const handlePickImage = async () => {
     try {
@@ -114,14 +157,14 @@ export const PublishModal: React.FC<PublishModalProps> = ({
     addItem({
       title: title.trim(),
       type,
-      category,
+      category: 'General',
       locationName: selectedLocation.name,
       coords: {
         x: selectedLocation.x,
         y: selectedLocation.y,
       },
       description: description.trim(),
-      imageUrl: imageUrl || PRESET_PHOTOS[0].url,
+      imageUrl: imageUrl || 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=80',
       author: {
         name: user.name || 'Estudiante UTCH',
         career: user.career,
@@ -133,6 +176,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
     // Reset fields
     setTitle('');
     setDescription('');
+    setImageUrl('');
     Alert.alert(
       '¡Publicación Exitosa!',
       `Tu publicación ha sido añadida al feed y ubicada en el mapa en "${selectedLocation.name}".`
@@ -215,31 +259,25 @@ export const PublishModal: React.FC<PublishModalProps> = ({
             {/* Photo Section */}
             <Text style={styles.label}>Foto del Objeto</Text>
             <View style={styles.photoContainer}>
-              <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />
-              <TouchableOpacity style={styles.changePhotoBtn} onPress={handlePickImage} activeOpacity={0.8}>
-                <Ionicons name="camera" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.changePhotoText}>Subir foto de galería</Text>
+              {imageUrl ? (
+                <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="image-outline" size={48} color="#94A3B8" />
+                  <Text style={styles.photoPlaceholderText}>Sin foto seleccionada</Text>
+                </View>
+              )}
+            </View>
+            <View style={styles.photoActions}>
+              <TouchableOpacity style={styles.photoActionBtn} onPress={handleTakePhoto} activeOpacity={0.8}>
+                <Ionicons name="camera" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.photoActionText}>Tomar Foto</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.photoActionBtn} onPress={handlePickImage} activeOpacity={0.8}>
+                <Ionicons name="images" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.photoActionText}>Galería</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Preset quick selection */}
-            <Text style={styles.sublabel}>O elige una foto de muestra rápida:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
-              {PRESET_PHOTOS.map((p, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.presetThumb,
-                    imageUrl === p.url && styles.presetThumbSelected,
-                  ]}
-                  onPress={() => setImageUrl(p.url)}
-                  activeOpacity={0.7}
-                >
-                  <Image source={{ uri: p.url }} style={styles.presetImg} />
-                  <Text style={styles.presetLabel}>{p.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
 
             {/* Object Title */}
             <Text style={styles.label}>Título del Objeto *</Text>
@@ -251,34 +289,15 @@ export const PublishModal: React.FC<PublishModalProps> = ({
               onChangeText={setTitle}
             />
 
-            {/* Category */}
-            <Text style={styles.label}>Categoría</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.chip,
-                    category === cat && styles.chipActive,
-                  ]}
-                  onPress={() => setCategory(cat)}
-                  activeOpacity={0.8}
-                >
-                  <Text
-                    style={[
-                      styles.chipText,
-                      category === cat && styles.chipTextActive,
-                    ]}
-                  >
-                    {cat}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
             {/* UTCH Campus Location */}
             <Text style={styles.label}>Ubicación en Campus UTCH *</Text>
             <Text style={styles.sublabel}>Selecciona el edificio donde se encuentra o extravió:</Text>
+            {locationText ? (
+              <View style={styles.locationInfo}>
+                <Ionicons name="navigate" size={14} color={THEME.colors.primaryDark} style={{ marginRight: 6 }} />
+                <Text style={styles.locationInfoText}>{locationText}</Text>
+              </View>
+            ) : null}
             <View style={styles.locationsGrid}>
               {UTCH_CAMPUS_POINTS.map((loc) => {
                 const isSelected = selectedLocation.id === loc.id;
@@ -440,47 +459,34 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  changePhotoBtn: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
+  photoPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoPlaceholderText: {
+    color: '#94A3B8',
+    fontSize: 13,
+    marginTop: 8,
+  },
+  photoActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 10,
+  },
+  photoActionBtn: {
+    flex: 1,
     backgroundColor: 'rgba(13, 82, 44, 0.88)',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 10,
   },
-  changePhotoText: {
+  photoActionText: {
     color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  presetsScroll: {
-    marginVertical: 4,
-  },
-  presetThumb: {
-    width: 70,
-    marginRight: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-    padding: 4,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  presetThumbSelected: {
-    borderColor: THEME.colors.primaryDark,
-    backgroundColor: '#E8F5E9',
-  },
-  presetImg: {
-    width: 60,
-    height: 44,
-    borderRadius: 6,
-  },
-  presetLabel: {
-    fontSize: 10,
-    color: '#334155',
-    marginTop: 4,
+    fontSize: 13,
     fontWeight: '600',
   },
   textInput: {
@@ -496,29 +502,19 @@ const styles = StyleSheet.create({
   textArea: {
     height: 90,
   },
-  chipsScroll: {
-    marginVertical: 4,
-  },
-  chip: {
-    paddingHorizontal: 14,
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#F1F5F9',
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  chipActive: {
-    backgroundColor: THEME.colors.primaryDark,
-    borderColor: THEME.colors.primaryDark,
-  },
-  chipText: {
-    fontSize: 13,
+  locationInfoText: {
+    fontSize: 12,
+    color: THEME.colors.primaryDark,
     fontWeight: '600',
-    color: '#475569',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
   },
   locationsGrid: {
     gap: 8,

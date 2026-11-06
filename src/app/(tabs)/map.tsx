@@ -5,45 +5,26 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  ScrollView,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { CustomHeader } from '../../components/CustomHeader';
-import { UTCHCampusMap } from '../../components/UTCHCampusMap';
 import { ItemDetailModal } from '../../components/ItemDetailModal';
 import { PublishModal } from '../../components/PublishModal';
 import { THEME } from '../../constants/theme';
 import { useLostItems } from '../../context/LostItemsContext';
-import { LostItem } from '../../types';
 
 export default function MapScreen() {
   const router = useRouter();
   const { items, selectedItemId, setSelectedItemId } = useLostItems();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'found' | 'lost'>('all');
   const [publishVisible, setPublishVisible] = useState(false);
 
   // Directly derive active detail item from selectedItemId
   const detailItem = items.find((i) => i.id === selectedItemId) ?? null;
   const detailVisible = Boolean(selectedItemId);
-
-  const filteredItems = items.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.locationName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.category.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesType =
-      filterType === 'all' || item.type === filterType;
-
-    return matchesSearch && matchesType;
-  });
-
-  const handleSelectItem = (item: LostItem) => {
-    setSelectedItemId(item.id);
-  };
 
   const handleCloseDetail = () => {
     setSelectedItemId(null);
@@ -77,59 +58,12 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {/* Filter Chips Bar */}
-      <View style={styles.filterBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          <TouchableOpacity
-            style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
-            onPress={() => setFilterType('all')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>
-              Todos ({items.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, filterType === 'found' && styles.filterChipActiveFound]}
-            onPress={() => setFilterType('found')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="checkmark-circle"
-              size={14}
-              color={filterType === 'found' ? '#FFFFFF' : THEME.colors.primaryLight}
-              style={{ marginRight: 4 }}
-            />
-            <Text style={[styles.filterChipText, filterType === 'found' && styles.filterChipTextActive]}>
-              Encontrados ({items.filter((i) => i.type === 'found').length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterChip, filterType === 'lost' && styles.filterChipActiveLost]}
-            onPress={() => setFilterType('lost')}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="help-circle"
-              size={14}
-              color={filterType === 'lost' ? '#FFFFFF' : '#E11D48'}
-              style={{ marginRight: 4 }}
-            />
-            <Text style={[styles.filterChipText, filterType === 'lost' && styles.filterChipTextActive]}>
-              Perdidos ({items.filter((i) => i.type === 'lost').length})
-            </Text>
-          </TouchableOpacity>
-        </ScrollView>
-      </View>
-
-      {/* Interactive UTCH Campus Map */}
+      {/* Static UTCH Campus Map Image */}
       <View style={styles.mapContainer}>
-        <UTCHCampusMap
-          items={filteredItems}
-          selectedItemId={selectedItemId}
-          onSelectItem={handleSelectItem}
+        <Image
+          source={require('../../../assets/images/mapa.jpg')}
+          style={styles.mapImage}
+          resizeMode="cover"
         />
 
         {/* Floating Action Button: + Publicar Objeto */}
@@ -189,49 +123,13 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     paddingVertical: 0,
   },
-  filterBar: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingVertical: 8,
-  },
-  filterScroll: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  filterChipActive: {
-    backgroundColor: THEME.colors.primaryDark,
-    borderColor: THEME.colors.primaryDark,
-  },
-  filterChipActiveFound: {
-    backgroundColor: THEME.colors.primaryDark,
-    borderColor: THEME.colors.primaryDark,
-  },
-  filterChipActiveLost: {
-    backgroundColor: '#E11D48',
-    borderColor: '#E11D48',
-  },
-  filterChipText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#475569',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
   mapContainer: {
     flex: 1,
     position: 'relative',
+  },
+  mapImage: {
+    width: '100%',
+    height: '100%',
   },
   fabButton: {
     position: 'absolute',
