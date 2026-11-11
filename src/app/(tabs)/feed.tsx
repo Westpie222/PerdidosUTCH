@@ -28,7 +28,7 @@ export default function FeedScreen() {
     setRefreshing(true);
     setTimeout(() => {
       setRefreshing(false);
-    }, 600);
+    }, 500);
   };
 
   const handleCardPress = (item: LostItem) => {
@@ -50,7 +50,7 @@ export default function FeedScreen() {
 
     return (
       <View style={styles.cardContainer}>
-        {/* Cabecera de la tarjeta */}
+        {/* Head tarjeta */}
         <TouchableOpacity
           style={styles.cardHeader}
           onPress={() => handleCardPress(item)}
@@ -82,18 +82,9 @@ export default function FeedScreen() {
             resizeMode="cover"
           />
 
-          <View style={styles.mapJumpPill}>
-            <Ionicons
-              name="map"
-              size={14}
-              color="#FFFFFF"
-              style={{ marginRight: 4 }}
-            />
-            <Text style={styles.mapJumpText}>Ver en Mapa</Text>
-          </View>
         </TouchableOpacity>
 
-        {/* Cuerpo de la publicación */}
+        {/* Body Publicación */}
         <TouchableOpacity
           style={styles.cardBody}
           onPress={() => handleCardPress(item)}
@@ -142,7 +133,7 @@ export default function FeedScreen() {
         onBellPress={() => {}}
       />
 
-      {/* Lista de publicaciones */}
+      {/* Publicaciones */}
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
@@ -159,7 +150,7 @@ export default function FeedScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      {/* Botón flotante para publicar */}
+      {/* Botón para publicar */}
       <TouchableOpacity
         style={styles.fabBtn}
         onPress={() => setPublishVisible(true)}
@@ -272,24 +263,6 @@ const styles = StyleSheet.create({
   cardImage: {
     width: "100%",
     height: "100%",
-  },
-  mapJumpPill: {
-    position: "absolute",
-    bottom: 12,
-    right: 12,
-    backgroundColor: "rgba(13, 82, 44, 0.92)",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.3)",
-  },
-  mapJumpText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "700",
   },
   cardBody: {
     paddingHorizontal: 14,

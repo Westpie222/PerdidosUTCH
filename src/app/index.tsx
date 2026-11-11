@@ -27,7 +27,7 @@ export default function LoginScreen() {
 
   const handleInfoPress = () => {
     Alert.alert(
-      'Acceso Institucional UTCH',
+      'Acceso Institucional',
       'Ingresa con tu correo institucional @utch.edu.mx y tu contraseña de alumno.'
     );
   };
@@ -39,7 +39,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top Header matching Page 1 */}
+      {/* Header */}
       <View
         style={[
           styles.topBar,
@@ -57,19 +57,16 @@ export default function LoginScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Big Green Avatar Circle matching Page 1 */}
+          {/* Icon */}
           <View style={styles.avatarWrapper}>
             <View style={styles.avatarCircle}>
               <Ionicons name="person" size={88} color="#FFFFFF" />
             </View>
           </View>
 
-          {/* Title: Iniciar Sesión */}
           <Text style={styles.screenTitle}>Iniciar Sesión</Text>
 
-          {/* Form Inputs */}
           <View style={styles.formContainer}>
-            {/* Email Input */}
             <View style={styles.inputBox}>
               <TextInput
                 style={styles.inputField}
@@ -82,14 +79,13 @@ export default function LoginScreen() {
               />
               <TouchableOpacity
                 onPress={handleInfoPress}
-                style={styles.inputIconBtn}
+                style={styles.inputIconBtn} 
                 activeOpacity={0.7}
               >
                 <Ionicons name="information-circle-outline" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
 
-            {/* Password Input */}
             <View style={styles.inputBox}>
               <TextInput
                 style={styles.inputField}
@@ -113,7 +109,6 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Iniciar Sesión Button */}
             <TouchableOpacity
               style={styles.loginButton}
               onPress={handleLogin}
@@ -126,21 +121,20 @@ export default function LoginScreen() {
             <TouchableOpacity
               style={styles.demoLoginBtn}
               onPress={() => {
-                setEmail('carlos.mendez@utch.edu.mx');
+                setEmail('sin_cuenta@utch.edu.mx');
                 setPassword('utch2026');
                 handleLogin();
               }}
               activeOpacity={0.7}
             >
               <Text style={styles.demoLoginText}>
-                Demo Rápido: Entrar como Estudiante UTCH
+                Ingresar sin cuenta.
               </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Bottom Bar matching Page 1 */}
       <View
         style={[
           styles.bottomBar,
