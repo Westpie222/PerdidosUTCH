@@ -91,13 +91,11 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* Campus Tag Pill */}
       <View style={styles.campusTag}>
         <View style={styles.liveDot} />
         <Text style={styles.campusTagText}>Campus UTCH Chihuahua</Text>
       </View>
 
-      {/* Pan & Zoom Area */}
       <ScrollView
         ref={verticalScrollRef}
         style={styles.outerScroll}
@@ -126,7 +124,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
               height={MAP_HEIGHT * zoomLevel}
               viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
             >
-              {/* Background Campus Terrain */}
               <Rect x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT} fill="#F3F5F1" />
 
               {/* Green Zones / Jardines UTCH */}
@@ -155,7 +152,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 strokeWidth="1"
               />
 
-              {/* Main Avenue: Av. de la Cantera */}
               <Path
                 d="M 0 100 Q 300 130 640 180"
                 fill="none"
@@ -169,7 +165,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 stroke="#A7B9C9"
                 strokeWidth="2"
               />
-              {/* Avenue Divider Lines */}
               <Path
                 d="M 0 100 Q 300 130 640 180"
                 fill="none"
@@ -178,7 +173,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 strokeDasharray="14,10"
               />
 
-              {/* Avenue Label */}
               <SvgText
                 x="140"
                 y="110"
@@ -191,7 +185,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 Av. de la Cantera
               </SvgText>
 
-              {/* Commercial: Señor Camarón */}
               <G transform="translate(470, 70)">
                 <Rect
                   x="0"
@@ -212,7 +205,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 </SvgText>
               </G>
 
-              {/* Entrance Road to UTCH Campus */}
               <Path
                 d="M 330 130 L 330 200 L 290 280 L 290 380 L 270 410"
                 fill="none"
@@ -221,7 +213,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
-              {/* Secondary Campus Streets */}
               <Path
                 d="M 330 200 L 460 210 L 480 320 L 420 380 L 280 410"
                 fill="none"
@@ -244,7 +235,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 strokeLinejoin="round"
               />
 
-              {/* Roundabout: El Cazador */}
               <Circle
                 cx="270"
                 cy="410"
@@ -287,7 +277,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 </SvgText>
               </G>
 
-              {/* Building 1: UTCH Inclusión y Laboratorios */}
               <G transform="translate(140, 230)">
                 <Polygon
                   points="0,0 120,20 100,110 -15,85"
@@ -331,7 +320,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 y Laboratorios
               </SvgText>
 
-              {/* Building 2: UTCH Central (Edificio A, B, C) */}
               <G transform="translate(420, 240)">
                 <Polygon
                   points="0,10 90,0 120,95 20,110"
@@ -360,7 +348,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 UTCH
               </SvgText>
 
-              {/* Building 3: Tecnologías de la Información */}
               <G transform="translate(100, 460)">
                 <Polygon
                   points="10,0 95,15 80,95 0,75"
@@ -394,7 +381,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 Información
               </SvgText>
 
-              {/* Building 4: Rectoría */}
               <G transform="translate(85, 620)">
                 <Rect
                   x="0"
@@ -422,7 +408,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 Rectoría
               </SvgText>
 
-              {/* Building 5: Cafetería Central */}
               <G transform="translate(320, 320)">
                 <Rect
                   x="0"
@@ -439,7 +424,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 </SvgText>
               </G>
 
-              {/* Sports: Canchas Deportivas */}
               <G transform="translate(420, 500)">
                 <Rect
                   x="0"
@@ -465,7 +449,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                 </SvgText>
               </G>
 
-              {/* Parking Lot */}
               <G transform="translate(450, 400)">
                 <Rect
                   x="0"
@@ -483,7 +466,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
               </G>
             </Svg>
 
-            {/* Interactive Pins matching mockup design: Dark green circle with white star */}
             {items.map((item) => {
               const posX = (item.coords.x / 100) * MAP_WIDTH * zoomLevel;
               const posY = (item.coords.y / 100) * MAP_HEIGHT * zoomLevel;
@@ -502,12 +484,10 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                   onPress={() => onSelectItem(item)}
                   activeOpacity={0.8}
                 >
-                  {/* Selected Ripple Ring */}
                   {isSelected && (
                     <View style={styles.selectedRipple} />
                   )}
 
-                  {/* Pin Body (Mockup green circle with star) */}
                   <View
                     style={[
                       styles.pinCircle,
@@ -522,7 +502,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                     />
                   </View>
 
-                  {/* Pin Pointer Arrow */}
                   <View
                     style={[
                       styles.pinArrow,
@@ -531,7 +510,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
                     ]}
                   />
 
-                  {/* Mini Preview Label */}
                   <View style={styles.pinLabelBadge}>
                     <Text style={styles.pinLabelText} numberOfLines={1}>
                       {item.title}

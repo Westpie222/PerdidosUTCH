@@ -135,7 +135,7 @@ export const PublishModal: React.FC<PublishModalProps> = ({
     setDescription('');
     Alert.alert(
       '¡Publicación Exitosa!',
-      `Tu publicación ha sido añadida al feed y ubicada en el mapa en "${selectedLocation.name}".`
+      `Tu publicación ha sido añadida al feed".`
     );
 
     if (onSuccess) onSuccess();
@@ -151,16 +151,14 @@ export const PublishModal: React.FC<PublishModalProps> = ({
     >
       <View style={styles.backdrop}>
         <View style={styles.sheetContainer}>
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Publicar Objeto en UTCH</Text>
+            <Text style={styles.headerTitle}>Publicar Objeto</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={24} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
-            {/* Toggle: Lo encontré / Lo perdí */}
             <Text style={styles.label}>¿Qué deseas reportar?</Text>
             <View style={styles.toggleRow}>
               <TouchableOpacity
@@ -212,7 +210,6 @@ export const PublishModal: React.FC<PublishModalProps> = ({
               </TouchableOpacity>
             </View>
 
-            {/* Photo Section */}
             <Text style={styles.label}>Foto del Objeto</Text>
             <View style={styles.photoContainer}>
               <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />

@@ -25,7 +25,6 @@ export default function MapScreen() {
   const [filterType, setFilterType] = useState<'all' | 'found' | 'lost'>('all');
   const [publishVisible, setPublishVisible] = useState(false);
 
-  // Directly derive active detail item from selectedItemId
   const detailItem = items.find((i) => i.id === selectedItemId) ?? null;
   const detailVisible = Boolean(selectedItemId);
 
@@ -51,14 +50,12 @@ export default function MapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top Header matching Page 2: PerdidosUTCH + Bell Icon */}
       <CustomHeader
         title="PerdidosUTCH"
         showBell={true}
         onBellPress={() => router.push('/(tabs)/feed')}
       />
 
-      {/* Campus Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="#64748B" style={{ marginRight: 8 }} />
@@ -77,7 +74,6 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {/* Filter Chips Bar */}
       <View style={styles.filterBar}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
           <TouchableOpacity
@@ -124,7 +120,6 @@ export default function MapScreen() {
         </ScrollView>
       </View>
 
-      {/* Interactive UTCH Campus Map */}
       <View style={styles.mapContainer}>
         <UTCHCampusMap
           items={filteredItems}
@@ -132,7 +127,6 @@ export default function MapScreen() {
           onSelectItem={handleSelectItem}
         />
 
-        {/* Floating Action Button: + Publicar Objeto */}
         <TouchableOpacity
           style={styles.fabButton}
           onPress={() => setPublishVisible(true)}
@@ -144,14 +138,12 @@ export default function MapScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Detail Modal when pin is pressed */}
       <ItemDetailModal
         item={detailItem}
         visible={detailVisible}
         onClose={handleCloseDetail}
       />
 
-      {/* Publish Modal */}
       <PublishModal
         visible={publishVisible}
         onClose={() => setPublishVisible(false)}

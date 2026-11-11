@@ -48,7 +48,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         Alert.alert('Contacto', `Comunícate al teléfono: ${item.author.phone}`);
       });
     } else {
-      Alert.alert('Contacto', `Pasa a prefectura de ${item.locationName} para reclamar tu objeto.`);
+      Alert.alert('Contacto', `Pasa a las oficinas de ${item.locationName} para reclamar tu objeto.`);
     }
   };
 
@@ -116,13 +116,11 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 <Text style={styles.dateText}>Publicado: {item.date}</Text>
               </View>
 
-              {/* Description Box */}
               <View style={styles.descCard}>
                 <Text style={styles.sectionHeader}>Descripción</Text>
                 <Text style={styles.descriptionText}>{item.description}</Text>
               </View>
 
-              {/* Reporter Profile */}
               <View style={styles.reporterCard}>
                 <View style={styles.reporterAvatar}>
                   <Ionicons name="person" size={20} color={THEME.colors.primaryDark} />
@@ -135,7 +133,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                 </View>
               </View>
 
-              {/* Action Buttons */}
               <View style={styles.actionRow}>
                 <TouchableOpacity
                   style={styles.contactBtn}
@@ -143,7 +140,7 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   activeOpacity={0.8}
                 >
                   <Ionicons name="chatbubbles" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.contactBtnText}>Contactar Estudiante</Text>
+                  <Text style={styles.contactBtnText}>Contactar</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -188,7 +185,6 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
                   ))
                 )}
 
-                {/* Add Comment Input */}
                 <View style={styles.inputRow}>
                   <TextInput
                     style={styles.input}

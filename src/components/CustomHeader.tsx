@@ -53,7 +53,7 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
             onPress={handleBellPress}
             style={styles.bellBtn}
             activeOpacity={0.7}
-            accessibilityLabel="Feed de notificaciones de objetos perdidos"
+            accessibilityLabel="Notificaciones de objetos perdidos"
           >
             <Ionicons name="notifications" size={28} color={THEME.colors.bellAccent} />
             {items.length > 0 && (

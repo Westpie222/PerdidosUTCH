@@ -1,19 +1,19 @@
 export const THEME = {
   colors: {
-    // Primary UTCH green from mockup header/footer
+
     primaryDark: '#0D522C',
     primaryDarkDarker: '#08381D',
-    // Accent vibrant green from mockup avatar/buttons
+
     primaryLight: '#65C742',
     primaryLightPressed: '#53A834',
-    // Notification bell icon color (yellowish/lime)
+
     bellAccent: '#8EE041',
-    // Feed item colors
+    
     feedCardHeader: '#0D522C',
     feedCardBorder: '#0D522C',
     feedCardFooter: '#0D522C',
     feedImageBg: '#64C842',
-    // Backgrounds & neutrals
+
     background: '#F6F8F6',
     cardBackground: '#FFFFFF',
     textMain: '#142017',
@@ -21,7 +21,7 @@ export const THEME = {
     textLight: '#FFFFFF',
     border: '#E2E8F0',
     borderDark: '#0D522C',
-    // Map colors
+    
     mapBackground: '#EEF2EC',
     mapBuilding: '#E0E7DC',
     mapBuildingBorder: '#9EB097',

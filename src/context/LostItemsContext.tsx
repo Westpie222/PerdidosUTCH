@@ -19,11 +19,11 @@ interface LostItemsContextType {
 }
 
 const DEFAULT_USER: UserProfile = {
-  name: 'Carlos Méndez',
-  email: 'carlos.mendez@utch.edu.mx',
-  studentId: '21040852',
-  career: 'Ing. en Tecnologías de la Información',
-  phone: '614 188 4567',
+  name: 'User',
+  email: 'sin_cuenta@utch.edu.mx',
+  studentId: 'xxxxxxxx',
+  career: 'xxxxx',
+  phone: 'xxx xxx xxxx',
 };
 
 const LostItemsContext = createContext<LostItemsContextType | undefined>(undefined);

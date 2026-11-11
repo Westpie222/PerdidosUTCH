@@ -183,7 +183,7 @@ export default function SettingsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Editar Perfil UTCH</Text>
+              <Text style={styles.modalTitle}>Editar Perfil</Text>
               <TouchableOpacity onPress={() => setProfileModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
@@ -336,7 +336,7 @@ export default function SettingsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Soporte UTCH</Text>
+              <Text style={styles.modalTitle}>Soporte</Text>
               <TouchableOpacity onPress={() => setSupportModalVisible(false)}>
                 <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>

@@ -117,7 +117,6 @@ export default function LoginScreen() {
               <Text style={styles.loginButtonText}>Iniciar Sesión</Text>
             </TouchableOpacity>
 
-            {/* Demo Quick Access */}
             <TouchableOpacity
               style={styles.demoLoginBtn}
               onPress={() => {
@@ -125,10 +124,10 @@ export default function LoginScreen() {
                 setPassword('utch2026');
                 handleLogin();
               }}
-              activeOpacity={0.7}
+              activeOpacity={0.2}
             >
               <Text style={styles.demoLoginText}>
-                Ingresar sin cuenta.
+                Ingresar sin cuenta
               </Text>
             </TouchableOpacity>
           </View>
