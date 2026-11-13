@@ -102,7 +102,7 @@ export default function SettingsScreen() {
             onPress={() => setSavedModalVisible(true)}
             activeOpacity={0.7}
           >
-            <View style={styles.iconCircleSpecial}>
+            <View style={styles.iconCircle}>
               <Ionicons
                 name="basketball-outline"
                 size={38}

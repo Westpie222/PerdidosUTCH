@@ -42,7 +42,6 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
   const verticalScrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
   const [zoomLevel, setZoomLevel] = React.useState<number>(1);
 
-  // If selectedItemId changes, auto-center on the item's coordinates
   useEffect(() => {
     if (selectedItemId) {
       const selectedItem = items.find((i) => i.id === selectedItemId);
@@ -78,7 +77,7 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Zoom / Map Controls */}
+      {/* Controles del Mapa */}
       <View style={styles.controlsOverlay}>
         <TouchableOpacity style={styles.ctrlBtn} onPress={handleZoomIn} activeOpacity={0.8}>
           <Ionicons name="add" size={20} color={THEME.colors.primaryDark} />
@@ -93,7 +92,7 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
 
       <View style={styles.campusTag}>
         <View style={styles.liveDot} />
-        <Text style={styles.campusTagText}>Campus UTCH Chihuahua</Text>
+        <Text style={styles.campusTagText}>UTCH Chihuahua</Text>
       </View>
 
       <ScrollView
@@ -126,7 +125,7 @@ export const UTCHCampusMap: React.FC<UTCHCampusMapProps> = ({
             >
               <Rect x="0" y="0" width={MAP_WIDTH} height={MAP_HEIGHT} fill="#F3F5F1" />
 
-              {/* Green Zones / Jardines UTCH */}
+              {/* Jardines*/}
               <Path
                 d="M 120 220 L 320 220 L 300 380 L 100 370 Z"
                 fill="#E1EEDD"

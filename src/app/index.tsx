@@ -33,7 +33,7 @@ export default function LoginScreen() {
   };
 
   const handleLogin = () => {
-    login(email.trim() || 'carlos.mendez@utch.edu.mx');
+    login(email.trim() || 'sin_cuenta@utch.edu.mx');
     router.replace('/(tabs)/map');
   };
 
@@ -118,6 +118,14 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
+              style={{ marginTop: 15, alignItems: 'center' }}
+              onPress={() => router.push('/RegisterScreen')} // o la ruta que corresponda en tu proyecto
+            >
+            <Text style={{ color: THEME.colors.primaryDark, fontSize: 14, fontWeight: '600' }}>
+              ¿No tienes cuenta? <Text style={{ textDecorationLine: 'underline' }}>Regístrate aquí</Text>
+            </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
               style={styles.demoLoginBtn}
               onPress={() => {
                 setEmail('sin_cuenta@utch.edu.mx');
@@ -130,6 +138,7 @@ export default function LoginScreen() {
                 Ingresar sin cuenta
               </Text>
             </TouchableOpacity>
+            
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
