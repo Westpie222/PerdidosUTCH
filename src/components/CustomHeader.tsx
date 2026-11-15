@@ -14,11 +14,11 @@ interface CustomHeaderProps {
 }
 
 export const CustomHeader: React.FC<CustomHeaderProps> = ({
-  title = 'PerdidosUTCH',
-  showBell = true,
-  onBellPress,
-  showBack = false,
-}) => {
+                                                            title = 'PerdidosUTCH',
+                                                            showBell = true,
+                                                            onBellPress,
+                                                            showBack = false,
+                                                          }) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { items } = useLostItems();
@@ -32,39 +32,39 @@ export const CustomHeader: React.FC<CustomHeaderProps> = ({
   };
 
   return (
-    <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 14 : 12) }]}>
-      <View style={styles.headerContent}>
-        <View style={styles.leftRow}>
-          {showBack && (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={styles.backBtn}
-              activeOpacity={0.7}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-          <Text style={styles.titleText}>{title}</Text>
-        </View>
-
-        {showBell && (
-          <TouchableOpacity
-            onPress={handleBellPress}
-            style={styles.bellBtn}
-            activeOpacity={0.7}
-            accessibilityLabel="Feed de notificaciones de objetos perdidos"
-          >
-            <Ionicons name="notifications" size={28} color={THEME.colors.bellAccent} />
-            {items.length > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{items.length}</Text>
-              </View>
+      <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 14 : 12) }]}>
+        <View style={styles.headerContent}>
+          <View style={styles.leftRow}>
+            {showBack && (
+                <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={styles.backBtn}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons name="chevron-back" size={26} color="#FFFFFF" />
+                </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        )}
+            <Text style={styles.titleText}>{title}</Text>
+          </View>
+
+          {showBell && (
+              <TouchableOpacity
+                  onPress={handleBellPress}
+                  style={styles.bellBtn}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Notificaciones de objetos perdidos"
+              >
+                <Ionicons name="notifications" size={28} color={THEME.colors.bellAccent} />
+                {items.length > 0 && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{items.length}</Text>
+                    </View>
+                )}
+              </TouchableOpacity>
+          )}
+        </View>
       </View>
-    </View>
   );
 };
 

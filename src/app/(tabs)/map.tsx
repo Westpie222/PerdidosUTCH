@@ -19,7 +19,7 @@ import { LostItem } from '../../types';
 
 export default function MapScreen() {
   const router = useRouter();
-  const { items, selectedItemId, setSelectedItemId } = useLostItems();
+  const { items, itemsError, selectedItemId, setSelectedItemId } = useLostItems();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'found' | 'lost'>('all');
@@ -57,25 +57,6 @@ export default function MapScreen() {
         showBell={true}
         onBellPress={() => router.push('/(tabs)/feed')}
       />
-
-      {/* Campus Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={18} color="#64748B" style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar objeto en UTCH (mochila, credencial...)"
-            placeholderTextColor="#94A3B8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
 
       {/* Filter Chips Bar */}
       <View style={styles.filterBar}>
@@ -169,6 +150,14 @@ const styles = StyleSheet.create({
     backgroundColor: THEME.colors.primaryDark,
     paddingHorizontal: 16,
     paddingBottom: 10,
+  },
+  errorText: {
+    color: '#B91C1C',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontSize: 12,
+    fontWeight: '600',
   },
   searchBar: {
     flexDirection: 'row',

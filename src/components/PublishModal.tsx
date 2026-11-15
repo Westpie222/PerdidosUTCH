@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { ItemType } from '../types';
 import { THEME } from '../constants/theme';
-import { UTCH_CAMPUS_POINTS } from '../constants/campusLocations';
+import { isInsideCampus, UTCH_CAMPUS_POINTS } from '../constants/campusLocations';
 import { useLostItems } from '../context/LostItemsContext';
+import { ref, getDownloadURL, uploadBytes } from 'firebase/storage';
+import { storage } from '../config/fireBaseConfig';
 
 interface PublishModalProps {
   visible: boolean;
@@ -23,85 +26,89 @@ interface PublishModalProps {
   onSuccess?: () => void;
 }
 
-const PRESET_PHOTOS = [
-  {
-    label: 'Mochila',
-    url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Credencial',
-    url: 'https://images.unsplash.com/photo-1618042164219-62c820f10723?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Calculadora',
-    url: 'https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Termo',
-    url: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Audífonos',
-    url: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=700&q=80',
-  },
-  {
-    label: 'Llaves',
-    url: 'https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=700&q=80',
-  },
-];
 
-const CATEGORIES = [
-  'Mochila',
-  'Credencial / Docs',
-  'Electrónica',
-  'Útiles Escolares',
-  'Accesorios / Termo',
-  'Ropa',
-  'Otros',
-];
 
 export const PublishModal: React.FC<PublishModalProps> = ({
-  visible,
-  onClose,
-  onSuccess,
-}) => {
-  const { addItem, user } = useLostItems();
+                                                            visible,
+                                                            onClose,
+                                                            onSuccess,
+                                                          }) => {
+  const { addItem, user, userId } = useLostItems();
 
   const [type, setType] = useState<ItemType>('found');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
   const [selectedLocation, setSelectedLocation] = useState(UTCH_CAMPUS_POINTS[0]);
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState(PRESET_PHOTOS[0].url);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [phone, setPhone] = useState(user.phone || '');
 
-  const handlePickImage = async () => {
+  useEffect(() => {
+    if (visible) void Location.requestForegroundPermissionsAsync();
+  }, [visible]);
+
+  const getGpsPosition = async () => {
+    const { granted } = await Location.requestForegroundPermissionsAsync();
+    if (!granted) {
+      throw new Error('Se requiere el permiso de ubicación para usar la ubicación exacta.');
+    }
+    const { coords } = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    if (!isInsideCampus(coords.latitude, coords.longitude)) {
+      throw new Error('Tu ubicación está fuera de la UTCH. Elige un edificio de la lista.');
+    }
+    return { latitude: coords.latitude, longitude: coords.longitude };
+  };
+
+  const handlePickImage = async (source: 'camera' | 'library') => {
     try {
-      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const permissionResult =
+          source === 'camera'
+              ? await ImagePicker.requestCameraPermissionsAsync()
+              : await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         Alert.alert(
-          'Permiso necesario',
-          'Se requiere permiso para acceder a tus fotos y adjuntar la imagen del objeto.'
+            'Permiso necesario',
+            source === 'camera'
+                ? 'Se requiere permiso para usar la cámara y tomar la foto del objeto.'
+                : 'Se requiere permiso para acceder a tus fotos y adjuntar la imagen del objeto.'
         );
         return;
       }
 
-      const result = await ImagePicker.launchImageLibraryAsync({
+      const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
-      });
+        base64: true,
+      };
+      const result =
+          source === 'camera'
+              ? await ImagePicker.launchCameraAsync(options)
+              : await ImagePicker.launchImageLibraryAsync(options);
 
       if (!result.canceled && result.assets[0]?.uri) {
-        setImageUrl(result.assets[0].uri);
+        const selectedImage = result.assets[0];
+        if (!selectedImage.base64) {
+          Alert.alert(
+              'No se pudo preparar la imagen',
+              'Selecciona otra imagen o utiliza una de las imágenes de muestra.'
+          );
+          return;
+        }
+        setImageUrl(selectedImage.uri);
+        setImageBase64(selectedImage.base64);
       }
     } catch (e) {
       console.warn('Error picking image', e);
     }
   };
 
-  const handlePublish = () => {
+  const [isPublishing, setIsPublishing] = useState(false);
+
+  const handlePublish = async () => {
     if (!title.trim()) {
       Alert.alert('Falta información', 'Por favor ingresa el nombre o título del objeto.');
       return;
@@ -110,247 +117,258 @@ export const PublishModal: React.FC<PublishModalProps> = ({
       Alert.alert('Falta información', 'Por favor describe dónde y cómo encontraste/perdiste el objeto.');
       return;
     }
+    if (!imageUrl) {
+      Alert.alert('Falta información', 'Por favor agrega una foto del objeto.');
+      return;
+    }
 
-    addItem({
-      title: title.trim(),
-      type,
-      category,
-      locationName: selectedLocation.name,
-      coords: {
-        x: selectedLocation.x,
-        y: selectedLocation.y,
-      },
-      description: description.trim(),
-      imageUrl: imageUrl || PRESET_PHOTOS[0].url,
-      author: {
-        name: user.name || 'Estudiante UTCH',
-        career: user.career,
-        studentId: user.studentId,
-        phone: phone || user.phone,
-      },
-    });
+    setIsPublishing(true);
+    try {
+      const position =
+          selectedLocation.id === 'gps'
+              ? await getGpsPosition()
+              : { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude };
+      let publishedImageUrl = imageUrl;
+      if (imageBase64) {
+        // 1. Crear el formulario con el base64 de la imagen
+        const formData = new FormData();
+        formData.append('image', imageBase64);
 
-    // Reset fields
-    setTitle('');
-    setDescription('');
-    Alert.alert(
-      '¡Publicación Exitosa!',
-      `Tu publicación ha sido añadida al feed y ubicada en el mapa en "${selectedLocation.name}".`
-    );
+        // 2. Subir a ImgBB (Reemplaza TU_API_KEY por la clave que copiaste)
+        const imgbbResponse = await fetch('https://api.imgbb.com/1/upload?key=129cb4133e99b2ac39fe2dca93c2ba3e', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            Accept: 'application/json',
+          },
+        });
 
-    if (onSuccess) onSuccess();
-    onClose();
+        const imgbbData = await imgbbResponse.json();
+
+        // 3. Obtener el enlace público devuelto por ImgBB
+        if (imgbbData.success) {
+          publishedImageUrl = imgbbData.data.url;
+        } else {
+          throw new Error('Error al subir la imagen al servidor externo.');
+        }
+      }
+
+      await addItem({
+        title: title.trim(),
+        type,
+        locationName: selectedLocation.name,
+        position,
+        description: description.trim(),
+        imageUrl: publishedImageUrl,
+        author: {
+          name: user.name || 'Estudiante UTCH',
+          career: user.career,
+          studentId: user.studentId,
+          phone: phone || user.phone,
+        },
+      });
+
+      setTitle('');
+      setDescription('');
+      setImageBase64(null);
+      setImageUrl(null);
+      Alert.alert(
+          '¡Publicación Exitosa!',
+          'Tu publicación ha sido añadida al feed.'
+      );
+
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (error) {
+      Alert.alert(
+          'No se pudo publicar',
+          error instanceof Error ? error.message : 'Intenta de nuevo más tarde.'
+      );
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.sheetContainer}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Publicar Objeto en UTCH</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
-            {/* Toggle: Lo encontré / Lo perdí */}
-            <Text style={styles.label}>¿Qué deseas reportar?</Text>
-            <View style={styles.toggleRow}>
-              <TouchableOpacity
-                style={[
-                  styles.toggleBtn,
-                  type === 'found' && styles.toggleBtnActiveFound,
-                ]}
-                onPress={() => setType('found')}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="shield-checkmark"
-                  size={18}
-                  color={type === 'found' ? '#FFFFFF' : '#475569'}
-                  style={{ marginRight: 6 }}
-                />
-                <Text
-                  style={[
-                    styles.toggleBtnText,
-                    type === 'found' && styles.toggleBtnTextActive,
-                  ]}
-                >
-                  Lo encontré
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.toggleBtn,
-                  type === 'lost' && styles.toggleBtnActiveLost,
-                ]}
-                onPress={() => setType('lost')}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name="help-circle"
-                  size={18}
-                  color={type === 'lost' ? '#FFFFFF' : '#475569'}
-                  style={{ marginRight: 6 }}
-                />
-                <Text
-                  style={[
-                    styles.toggleBtnText,
-                    type === 'lost' && styles.toggleBtnTextActive,
-                  ]}
-                >
-                  Lo perdí
-                </Text>
+      <Modal
+          visible={visible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={onClose}
+      >
+        <View style={styles.backdrop}>
+          <View style={styles.sheetContainer}>
+            {/* Header */}
+            <View style={styles.header}>
+              <Text style={styles.headerTitle}>Publicar Objeto</Text>
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
-            {/* Photo Section */}
-            <Text style={styles.label}>Foto del Objeto</Text>
-            <View style={styles.photoContainer}>
-              <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />
-              <TouchableOpacity style={styles.changePhotoBtn} onPress={handlePickImage} activeOpacity={0.8}>
-                <Ionicons name="camera" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.changePhotoText}>Subir foto de galería</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Preset quick selection */}
-            <Text style={styles.sublabel}>O elige una foto de muestra rápida:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetsScroll}>
-              {PRESET_PHOTOS.map((p, idx) => (
+            <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
+              {/* Toggle: Lo encontré / Lo perdí */}
+              <Text style={styles.label}>¿Qué deseas reportar?</Text>
+              <View style={styles.toggleRow}>
                 <TouchableOpacity
-                  key={idx}
-                  style={[
-                    styles.presetThumb,
-                    imageUrl === p.url && styles.presetThumbSelected,
-                  ]}
-                  onPress={() => setImageUrl(p.url)}
-                  activeOpacity={0.7}
-                >
-                  <Image source={{ uri: p.url }} style={styles.presetImg} />
-                  <Text style={styles.presetLabel}>{p.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            {/* Object Title */}
-            <Text style={styles.label}>Título del Objeto *</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Ej. Mochila negra Nike, Credencial Alan..."
-              placeholderTextColor="#94A3B8"
-              value={title}
-              onChangeText={setTitle}
-            />
-
-            {/* Category */}
-            <Text style={styles.label}>Categoría</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-              {CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.chip,
-                    category === cat && styles.chipActive,
-                  ]}
-                  onPress={() => setCategory(cat)}
-                  activeOpacity={0.8}
-                >
-                  <Text
                     style={[
-                      styles.chipText,
-                      category === cat && styles.chipTextActive,
+                      styles.toggleBtn,
+                      type === 'found' && styles.toggleBtnActiveFound,
                     ]}
+                    onPress={() => setType('found')}
+                    activeOpacity={0.8}
+                >
+                  <Ionicons
+                      name="shield-checkmark"
+                      size={18}
+                      color={type === 'found' ? '#FFFFFF' : '#475569'}
+                      style={{ marginRight: 6 }}
+                  />
+                  <Text
+                      style={[
+                        styles.toggleBtnText,
+                        type === 'found' && styles.toggleBtnTextActive,
+                      ]}
                   >
-                    {cat}
+                    Lo encontré
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
 
-            {/* UTCH Campus Location */}
-            <Text style={styles.label}>Ubicación en Campus UTCH *</Text>
-            <Text style={styles.sublabel}>Selecciona el edificio donde se encuentra o extravió:</Text>
-            <View style={styles.locationsGrid}>
-              {UTCH_CAMPUS_POINTS.map((loc) => {
-                const isSelected = selectedLocation.id === loc.id;
-                return (
-                  <TouchableOpacity
-                    key={loc.id}
+                <TouchableOpacity
                     style={[
-                      styles.locationCard,
-                      isSelected && styles.locationCardActive,
+                      styles.toggleBtn,
+                      type === 'lost' && styles.toggleBtnActiveLost,
                     ]}
-                    onPress={() => setSelectedLocation(loc)}
+                    onPress={() => setType('lost')}
                     activeOpacity={0.8}
-                  >
-                    <Ionicons
-                      name={isSelected ? 'location' : 'location-outline'}
+                >
+                  <Ionicons
+                      name="help-circle"
                       size={18}
-                      color={isSelected ? '#FFFFFF' : THEME.colors.primaryDark}
+                      color={type === 'lost' ? '#FFFFFF' : '#475569'}
                       style={{ marginRight: 6 }}
-                    />
-                    <Text
+                  />
+                  <Text
                       style={[
-                        styles.locationName,
-                        isSelected && styles.locationNameActive,
+                        styles.toggleBtnText,
+                        type === 'lost' && styles.toggleBtnTextActive,
                       ]}
-                      numberOfLines={1}
-                    >
-                      {loc.name}
-                    </Text>
+                  >
+                    Lo perdí
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Photo Section */}
+              <Text style={styles.label}>Foto del Objeto *</Text>
+              <View style={styles.photoContainer}>
+                {imageUrl ? (
+                    <Image source={{ uri: imageUrl }} style={styles.photoPreview} resizeMode="cover" />
+                ) : (
+                    <View style={styles.photoEmpty}>
+                      <Ionicons name="image-outline" size={40} color="#94A3B8" />
+                    </View>
+                )}
+                <View style={styles.photoActions}>
+                  <TouchableOpacity style={styles.changePhotoBtn} onPress={() => handlePickImage('camera')} activeOpacity={0.8}>
+                    <Ionicons name="camera" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.changePhotoText}>Tomar foto</Text>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
+                  <TouchableOpacity style={styles.changePhotoBtn} onPress={() => handlePickImage('library')} activeOpacity={0.8}>
+                    <Ionicons name="images" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.changePhotoText}>Galería</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-            {/* Description */}
-            <Text style={styles.label}>Descripción Detallada *</Text>
-            <TextInput
-              style={[styles.textInput, styles.textArea]}
-              placeholder="Indica el aula, características particulares, color, marcas, dónde reclamar..."
-              placeholderTextColor="#94A3B8"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
+              {/* Object Title */}
+              <Text style={styles.label}>Título del Objeto</Text>
+              <TextInput
+                  style={styles.textInput}
+                  placeholder="Ej. Mochila negra Nike, Credencial..."
+                  placeholderTextColor="#94A3B8"
+                  value={title}
+                  onChangeText={setTitle}
+              />
 
-            {/* Contact Phone */}
-            <Text style={styles.label}>Teléfono de Contacto (WhatsApp)</Text>
-            <TextInput
-              style={styles.textInput}
-              placeholder="Ej. 614 123 4567"
-              placeholderTextColor="#94A3B8"
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-            />
+              {/* UTCH Location */}
+              <Text style={styles.label}>Ubicación en UTCH</Text>
+              <Text style={styles.sublabel}>Selecciona el edificio donde se encuentra o extravió:</Text>
+              <View style={styles.locationsGrid}>
+                {UTCH_CAMPUS_POINTS.map((loc) => {
+                  const isSelected = selectedLocation.id === loc.id;
+                  return (
+                      <TouchableOpacity
+                          key={loc.id}
+                          style={[
+                            styles.locationCard,
+                            isSelected && styles.locationCardActive,
+                          ]}
+                          onPress={() => setSelectedLocation(loc)}
+                          activeOpacity={0.8}
+                      >
+                        <Ionicons
+                            name={isSelected ? 'location' : 'location-outline'}
+                            size={18}
+                            color={isSelected ? '#FFFFFF' : THEME.colors.primaryDark}
+                            style={{ marginRight: 6 }}
+                        />
+                        <Text
+                            style={[
+                              styles.locationName,
+                              isSelected && styles.locationNameActive,
+                            ]}
+                            numberOfLines={1}
+                        >
+                          {loc.name}
+                        </Text>
+                      </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={styles.submitBtn}
-              onPress={handlePublish}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="cloud-upload" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
-              <Text style={styles.submitBtnText}>Publicar en PerdidosUTCH</Text>
-            </TouchableOpacity>
+              {/* Description */}
+              <Text style={styles.label}>Descripción Detallada *</Text>
+              <TextInput
+                  style={[styles.textInput, styles.textArea]}
+                  placeholder="Indica el aula, características particulares, color, marcas, dónde reclamar..."
+                  placeholderTextColor="#94A3B8"
+                  value={description}
+                  onChangeText={setDescription}
+                  multiline
+                  numberOfLines={4}
+                  textAlignVertical="top"
+              />
 
-            <View style={{ height: 40 }} />
-          </ScrollView>
+              {/* Contact Phone */}
+              <Text style={styles.label}>Teléfono de Contacto (WhatsApp)</Text>
+              <TextInput
+                  style={styles.textInput}
+                  placeholder="Ej. 614 123 4567"
+                  placeholderTextColor="#94A3B8"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+              />
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                  style={styles.submitBtn}
+                  onPress={handlePublish}
+                  disabled={isPublishing}
+                  activeOpacity={0.85}
+              >
+                <Ionicons name="cloud-upload" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
+                <Text style={styles.submitBtnText}>
+                  {isPublishing ? 'Publicando...' : 'Publicar en PerdidosUTCH'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={{ height: 40 }} />
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
   );
 };
 
@@ -440,10 +458,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  changePhotoBtn: {
+  photoEmpty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  photoActions: {
     position: 'absolute',
     bottom: 12,
     right: 12,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  changePhotoBtn: {
     backgroundColor: 'rgba(13, 82, 44, 0.88)',
     flexDirection: 'row',
     alignItems: 'center',
@@ -454,33 +481,6 @@ const styles = StyleSheet.create({
   changePhotoText: {
     color: '#FFFFFF',
     fontSize: 12,
-    fontWeight: '600',
-  },
-  presetsScroll: {
-    marginVertical: 4,
-  },
-  presetThumb: {
-    width: 70,
-    marginRight: 10,
-    alignItems: 'center',
-    borderRadius: 8,
-    padding: 4,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  presetThumbSelected: {
-    borderColor: THEME.colors.primaryDark,
-    backgroundColor: '#E8F5E9',
-  },
-  presetImg: {
-    width: 60,
-    height: 44,
-    borderRadius: 6,
-  },
-  presetLabel: {
-    fontSize: 10,
-    color: '#334155',
-    marginTop: 4,
     fontWeight: '600',
   },
   textInput: {

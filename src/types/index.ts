@@ -2,6 +2,7 @@ export type ItemType = 'lost' | 'found';
 
 export interface Comment {
   id: string;
+  authorId?: string;
   author: string;
   text: string;
   time: string;
@@ -13,9 +14,13 @@ export interface LostItem {
   type: ItemType;
   category: string;
   locationName: string;
-  coords: {
-    x: number; // percentage 0-100 on UTCH campus map
-    y: number; // percentage 0-100 on UTCH campus map
+  coords?: {
+    x: number; // legacy: percentage 0-100 on the old schematic map
+    y: number; // legacy: percentage 0-100 on the old schematic map
+  };
+  position?: {
+    latitude: number;
+    longitude: number;
   };
   description: string;
   imageUrl: string;
@@ -28,6 +33,10 @@ export interface LostItem {
   date: string;
   commentsCount: number;
   comments: Comment[];
+  likedBy?: string[];
+  likesCount?: number;
+  authorId?: string;
+  createdAt?: number;
   isResolved?: boolean;
 }
 
@@ -35,8 +44,8 @@ export interface CampusPoint {
   id: string;
   name: string;
   shortLabel: string;
-  x: number;
-  y: number;
+  latitude: number;
+  longitude: number;
   type: 'building' | 'landmark' | 'commercial' | 'sports';
 }
 

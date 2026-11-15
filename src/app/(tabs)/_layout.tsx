@@ -1,8 +1,14 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import { CustomBottomBar } from '../../components/CustomBottomBar';
+import { useLostItems } from '../../context/LostItemsContext';
 
 export default function TabLayout() {
+  const { authReady, isLoggedIn } = useLostItems();
+
+  if (!authReady) return null;
+  if (!isLoggedIn) return <Redirect href="/" />;
+
   return (
     <Tabs
       tabBar={() => <CustomBottomBar />}

@@ -18,12 +18,14 @@ import { useLostItems } from '../../context/LostItemsContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { user, updateUser, logout, items, savedItemIds, setSelectedItemId } = useLostItems();
+  const { user, updateUser, logout, deleteAccount } = useLostItems();
 
   const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Profile edit states
   const [editName, setEditName] = useState(user.name);
@@ -31,328 +33,357 @@ export default function SettingsScreen() {
   const [editStudentId, setEditStudentId] = useState(user.studentId);
   const [editPhone, setEditPhone] = useState(user.phone);
 
-  const handleSaveProfile = () => {
-    updateUser({
-      name: editName.trim(),
-      career: editCareer.trim(),
-      studentId: editStudentId.trim(),
-      phone: editPhone.trim(),
-    });
-    setProfileModalVisible(false);
-    Alert.alert('Perfil Actualizado', 'Tus datos de estudiante han sido guardados.');
+  const handleSaveProfile = async () => {
+    try {
+      await updateUser({
+        name: editName.trim(),
+        career: editCareer.trim(),
+        studentId: editStudentId.trim(),
+        phone: editPhone.trim(),
+      });
+      setProfileModalVisible(false);
+      Alert.alert('Perfil Actualizado', 'Tus datos de estudiante han sido guardados.');
+    } catch (error) {
+      Alert.alert(
+          'No se pudo guardar el perfil',
+          error instanceof Error ? error.message : 'Intenta de nuevo más tarde.'
+      );
+    }
   };
 
   const handleLogout = () => {
     Alert.alert(
-      'Cerrar sesión',
-      '¿Estás seguro de que deseas salir de tu cuenta de PerdidosUTCH?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar sesión',
-          style: 'destructive',
-          onPress: () => {
-            logout();
-            router.replace('/');
+        'Cerrar sesión',
+        '¿Estás seguro de que deseas salir de tu cuenta?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Cerrar sesión',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await logout();
+                router.replace('/');
+              } catch (error) {
+                Alert.alert(
+                    'No se pudo cerrar sesión',
+                    error instanceof Error ? error.message : 'Intenta de nuevo más tarde.'
+                );
+              }
+            },
           },
-        },
-      ]
+        ]
     );
   };
 
-  const savedItems = items.filter((item) => savedItemIds.includes(item.id));
+  const closeDeleteModal = () => {
+    setDeleteModalVisible(false);
+    setDeletePassword('');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      Alert.alert('Falta tu contraseña', 'Ingresa tu contraseña para confirmar.');
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await deleteAccount(deletePassword);
+      router.replace('/');
+    } catch (error) {
+      const code =
+          typeof error === 'object' && error !== null && 'code' in error
+              ? String(error.code)
+              : '';
+      Alert.alert(
+          'No se pudo eliminar la cuenta',
+          code === 'auth/invalid-credential' || code === 'auth/wrong-password'
+              ? 'La contraseña es incorrecta.'
+              : error instanceof Error
+                  ? error.message
+                  : 'Intenta de nuevo más tarde.'
+      );
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-    <View style={styles.container}>
-      {/* Header matching Page 4: Ajustes + Bell Icon */}
-      <CustomHeader
-        title="Ajustes"
-        showBell={true}
-        onBellPress={() => router.push('/(tabs)/feed')}
-      />
+      <View style={styles.container}>
+        {/* Header matching Page 4: Ajustes + Bell Icon */}
+        <CustomHeader
+            title="Ajustes"
+            showBell={true}
+            onBellPress={() => router.push('/(tabs)/feed')}
+        />
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Student Mini Card */}
-        <View style={styles.userBanner}>
-          <View style={styles.bannerAvatar}>
-            <Ionicons name="person" size={32} color="#FFFFFF" />
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* Menu Options matching Page 4 Icons and Layout */}
+          <View style={styles.menuContainer}>
+            {/* Option 1: Perfil */}
+            <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setProfileModalVisible(true)}
+                activeOpacity={0.7}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="person" size={36} color={THEME.colors.primaryDark} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Perfil</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 3: Seguridad y Privacidad */}
+            <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setPrivacyModalVisible(true)}
+                activeOpacity={0.7}
+            >
+              <View style={styles.iconCircle}>
+                <MaterialCommunityIcons
+                    name="shield-lock-outline"
+                    size={36}
+                    color={THEME.colors.primaryDark}
+                />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitleMultiline}>Seguridad y{'\n'}Privacidad</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 4: Soporte */}
+            <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setSupportModalVisible(true)}
+                activeOpacity={0.7}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="call-outline" size={34} color={THEME.colors.primaryDark} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>Soporte</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 5: Cerrar sesión */}
+            <TouchableOpacity
+                style={styles.menuItem}
+                onPress={handleLogout}
+                activeOpacity={0.7}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="exit-outline" size={34} color={THEME.colors.primaryDark} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitleMultiline}>Cerrar{'\n'}sesión</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 6: Eliminar cuenta */}
+            <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => setDeleteModalVisible(true)}
+                activeOpacity={0.7}
+            >
+              <View style={styles.iconCircle}>
+                <Ionicons name="trash-outline" size={34} color={THEME.colors.primaryDark} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitleMultiline}>Eliminar{'\n'}cuenta</Text>
+              </View>
+            </TouchableOpacity>
           </View>
-          <View style={styles.bannerDetails}>
-            <Text style={styles.bannerName}>{user.name}</Text>
-            <Text style={styles.bannerCareer}>{user.career}</Text>
-            <Text style={styles.bannerId}>Matrícula: {user.studentId}</Text>
+        </ScrollView>
+
+        {/* Modal: Perfil */}
+        <Modal
+            visible={profileModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setProfileModalVisible(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Editar Perfil</Text>
+                <TouchableOpacity onPress={() => setProfileModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ padding: 18 }}>
+                <Text style={styles.inputLabel}>Nombre Completo</Text>
+                <TextInput
+                    style={styles.input}
+                    value={editName}
+                    onChangeText={setEditName}
+                    placeholder="Nombre del estudiante"
+                />
+
+                <Text style={styles.inputLabel}>Carrera</Text>
+                <TextInput
+                    style={styles.input}
+                    value={editCareer}
+                    onChangeText={setEditCareer}
+                    placeholder="xxxxx"
+                />
+
+                <Text style={styles.inputLabel}>Matrícula</Text>
+                <TextInput
+                    style={styles.input}
+                    value={editStudentId}
+                    onChangeText={setEditStudentId}
+                    placeholder="xxxxxxxx"
+                />
+
+                <Text style={styles.inputLabel}>Teléfono / WhatsApp</Text>
+                <TextInput
+                    style={styles.input}
+                    value={editPhone}
+                    onChangeText={setEditPhone}
+                    placeholder="xxx xxx xxxx"
+                    keyboardType="phone-pad"
+                />
+
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
+                  <Text style={styles.saveBtnText}>Guardar Cambios</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
           </View>
-        </View>
+        </Modal>
 
-        {/* Menu Options matching Page 4 Icons and Layout */}
-        <View style={styles.menuContainer}>
-          {/* Option 1: Perfil */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setProfileModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconCircle}>
-              <Ionicons name="person" size={36} color={THEME.colors.primaryDark} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Perfil</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Option 2: Objetos que buscas */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setSavedModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconCircleSpecial}>
-              <Ionicons name="basketball-outline" size={38} color={THEME.colors.primaryDark} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitleMultiline}>Objetos que{'\n'}buscas</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Option 3: Seguridad y Privacidad */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setPrivacyModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconCircle}>
-              <MaterialCommunityIcons
-                name="shield-lock-outline"
-                size={36}
-                color={THEME.colors.primaryDark}
-              />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitleMultiline}>Seguridad y{'\n'}Privacidad</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Option 4: Soporte */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => setSupportModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconCircle}>
-              <Ionicons name="call-outline" size={34} color={THEME.colors.primaryDark} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>Soporte</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Option 5: Cerrar sesión */}
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleLogout}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconCircle}>
-              <Ionicons name="exit-outline" size={34} color={THEME.colors.primaryDark} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitleMultiline}>Cerrar{'\n'}sesión</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-
-      {/* Modal: Perfil */}
-      <Modal
-        visible={profileModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setProfileModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Editar Perfil UTCH</Text>
-              <TouchableOpacity onPress={() => setProfileModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ padding: 18 }}>
-              <Text style={styles.inputLabel}>Nombre Completo</Text>
-              <TextInput
-                style={styles.input}
-                value={editName}
-                onChangeText={setEditName}
-                placeholder="Nombre del estudiante"
-              />
-
-              <Text style={styles.inputLabel}>Carrera</Text>
-              <TextInput
-                style={styles.input}
-                value={editCareer}
-                onChangeText={setEditCareer}
-                placeholder="Ej. Ing. en Tecnologías de la Información"
-              />
-
-              <Text style={styles.inputLabel}>Matrícula</Text>
-              <TextInput
-                style={styles.input}
-                value={editStudentId}
-                onChangeText={setEditStudentId}
-                placeholder="Ej. 21040852"
-              />
-
-              <Text style={styles.inputLabel}>Teléfono / WhatsApp</Text>
-              <TextInput
-                style={styles.input}
-                value={editPhone}
-                onChangeText={setEditPhone}
-                placeholder="Ej. 614 188 4567"
-                keyboardType="phone-pad"
-              />
-
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile}>
-                <Text style={styles.saveBtnText}>Guardar Cambios</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal: Objetos que buscas */}
-      <Modal
-        visible={savedModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setSavedModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Objetos que buscas ({savedItems.length})</Text>
-              <TouchableOpacity onPress={() => setSavedModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View>
-            <ScrollView style={{ padding: 18 }}>
-              {savedItems.length === 0 ? (
-                <Text style={styles.emptyText}>
-                  No tienes objetos guardados o en seguimiento. Guarda publicaciones del feed o mapa para monitorearlos aquí.
+        {/* Modal: Seguridad y Privacidad */}
+        <Modal
+            visible={privacyModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setPrivacyModalVisible(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Seguridad y Privacidad</Text>
+                <TouchableOpacity onPress={() => setPrivacyModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ padding: 20 }}>
+                <Text style={styles.infoTitle}>Normativa de Objetos Perdidos</Text>
+                <Text style={styles.infoText}>
+                  1. Todos los reportes deben estar dentro del perímetro del campus de la Universidad Tecnológica de Chihuahua.
                 </Text>
-              ) : (
-                savedItems.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.savedCard}
-                    onPress={() => {
-                      setSavedModalVisible(false);
-                      setSelectedItemId(item.id);
-                      router.push('/(tabs)/map');
-                    }}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.savedCardTitle}>{item.title}</Text>
-                      <Text style={styles.savedCardSub}>
-                        {item.locationName} • {item.date}
-                      </Text>
-                    </View>
-                    <Ionicons name="arrow-forward-circle" size={24} color={THEME.colors.primaryDark} />
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal: Seguridad y Privacidad */}
-      <Modal
-        visible={privacyModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setPrivacyModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Seguridad y Privacidad</Text>
-              <TouchableOpacity onPress={() => setPrivacyModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
+                <Text style={styles.infoText}>
+                  2. Los artículos de alto valor (laptops, celulares, carteras con dinero) deben ser entregados en las oficinas del respectivo edificio.
+                </Text>
+                <Text style={styles.infoText}>
+                  3. Tus datos de contacto solo se comparten con estudiantes de la UTCH para facilitar la entrega de las pertenencias.
+                </Text>
+                <TouchableOpacity
+                    style={styles.closeSimpleBtn}
+                    onPress={() => setPrivacyModalVisible(false)}
+                >
+                  <Text style={styles.closeSimpleBtnText}>Entendido</Text>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
-            <ScrollView style={{ padding: 20 }}>
-              <Text style={styles.infoTitle}>Normativa de Objetos Perdidos UTCH</Text>
-              <Text style={styles.infoText}>
-                1. Todos los reportes deben corresponder al perímetro del campus de la Universidad Tecnológica de Chihuahua.
-              </Text>
-              <Text style={styles.infoText}>
-                2. Los artículos de alto valor (laptops, celulares, carteras con dinero) deben ser entregados a la Prefectura de su respectivo edificio o al departamento de Seguridad.
-              </Text>
-              <Text style={styles.infoText}>
-                3. Tus datos de contacto solo se comparten con estudiantes de la comunidad UTCH para facilitar la entrega de las pertenencias.
-              </Text>
-              <TouchableOpacity
-                style={styles.closeSimpleBtn}
-                onPress={() => setPrivacyModalVisible(false)}
-              >
-                <Text style={styles.closeSimpleBtnText}>Entendido</Text>
-              </TouchableOpacity>
-            </ScrollView>
           </View>
-        </View>
-      </Modal>
+        </Modal>
 
-      {/* Modal: Soporte */}
-      <Modal
-        visible={supportModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setSupportModalVisible(false)}
-      >
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Soporte Campus UTCH</Text>
-              <TouchableOpacity onPress={() => setSupportModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
+        {/* Modal: Soporte */}
+        <Modal
+            visible={supportModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setSupportModalVisible(false)}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Soporte</Text>
+                <TouchableOpacity onPress={() => setSupportModalVisible(false)}>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ padding: 20 }}>
+                <Text style={styles.supportLabel}>¿Necesitas asistencia?</Text>
+
+                <TouchableOpacity
+                    style={styles.contactItem}
+                    onPress={() => Linking.openURL('tel:6144322000')}
+                >
+                  <Ionicons name="call" size={22} color={THEME.colors.primaryDark} style={{ marginRight: 12 }} />
+                  <View>
+                    <Text style={styles.contactItemTitle}>Asistente</Text>
+                    <Text style={styles.contactItemSub}>xxx xxx xxxx</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.contactItem}
+                    onPress={() => Linking.openURL('https://web.whatsapp.com/')}
+                >
+                  <Ionicons name="logo-whatsapp" size={22} color="#25D366" style={{ marginRight: 12 }} />
+                  <View>
+                    <Text style={styles.contactItemTitle}>Ayuda Directa</Text>
+                    <Text style={styles.contactItemSub}>Chat</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.closeSimpleBtn}
+                    onPress={() => setSupportModalVisible(false)}
+                >
+                  <Text style={styles.closeSimpleBtnText}>Cerrar</Text>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
-            <ScrollView style={{ padding: 20 }}>
-              <Text style={styles.supportLabel}>¿Necesitas asistencia en el campus?</Text>
-
-              <TouchableOpacity
-                style={styles.contactItem}
-                onPress={() => Linking.openURL('tel:6144322000')}
-              >
-                <Ionicons name="call" size={22} color={THEME.colors.primaryDark} style={{ marginRight: 12 }} />
-                <View>
-                  <Text style={styles.contactItemTitle}>Conmutador UTCH</Text>
-                  <Text style={styles.contactItemSub}>614 432 2000 Ext. 1010</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.contactItem}
-                onPress={() => Linking.openURL('https://wa.me/526141884567')}
-              >
-                <Ionicons name="logo-whatsapp" size={22} color="#25D366" style={{ marginRight: 12 }} />
-                <View>
-                  <Text style={styles.contactItemTitle}>Mesa de Ayuda Estudiantil</Text>
-                  <Text style={styles.contactItemSub}>Chat directo con Prefectura</Text>
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.closeSimpleBtn}
-                onPress={() => setSupportModalVisible(false)}
-              >
-                <Text style={styles.closeSimpleBtnText}>Cerrar</Text>
-              </TouchableOpacity>
-            </ScrollView>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+
+        {/* Modal: Eliminar cuenta */}
+        <Modal
+            visible={deleteModalVisible}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={closeDeleteModal}
+        >
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Eliminar cuenta</Text>
+                <TouchableOpacity onPress={closeDeleteModal}>
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ padding: 20 }}>
+                <Text style={styles.infoText}>
+                  Se eliminarán de forma permanente tu cuenta, tu perfil, tus publicaciones y tus comentarios. Esta acción no se puede deshacer.
+                </Text>
+                <Text style={styles.inputLabel}>Confirma tu contraseña</Text>
+                <TextInput
+                    style={styles.input}
+                    value={deletePassword}
+                    onChangeText={setDeletePassword}
+                    placeholder="Contraseña"
+                    secureTextEntry
+                    autoCapitalize="none"
+                    editable={!isDeleting}
+                />
+                <TouchableOpacity
+                    style={[styles.saveBtn, styles.deleteBtn]}
+                    onPress={handleDeleteAccount}
+                    disabled={isDeleting}
+                >
+                  <Text style={styles.saveBtnText}>
+                    {isDeleting ? 'Eliminando...' : 'Eliminar mi cuenta'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      </View>
   );
 }
 
@@ -365,43 +396,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 26,
     paddingTop: 20,
     paddingBottom: 40,
-  },
-  userBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F6F3',
-    padding: 14,
-    borderRadius: 14,
-    marginBottom: 26,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  bannerAvatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: THEME.colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  bannerDetails: {
-    flex: 1,
-  },
-  bannerName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: THEME.colors.primaryDark,
-  },
-  bannerCareer: {
-    fontSize: 12,
-    color: '#475569',
-    marginTop: 2,
-  },
-  bannerId: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 1,
   },
   menuContainer: {
     gap: 16,
@@ -421,17 +415,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 22,
     backgroundColor: '#FFFFFF',
-  },
-  iconCircleSpecial: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    borderWidth: 2,
-    borderColor: THEME.colors.primaryDark,
-    backgroundColor: THEME.colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 22,
   },
   menuTextContainer: {
     flex: 1,
@@ -497,37 +480,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 20,
   },
+  deleteBtn: {
+    backgroundColor: '#E11D48',
+  },
   saveBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#94A3B8',
-    fontSize: 14,
-    marginVertical: 20,
-    lineHeight: 20,
-  },
-  savedCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#F8FAF8',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginBottom: 10,
-  },
-  savedCardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: THEME.colors.textMain,
-  },
-  savedCardSub: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 3,
   },
   infoTitle: {
     fontSize: 16,

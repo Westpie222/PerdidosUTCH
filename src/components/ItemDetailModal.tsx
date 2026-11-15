@@ -23,21 +23,70 @@ interface ItemDetailModalProps {
 }
 
 export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
-  item,
-  visible,
-  onClose,
-}) => {
-  const { addComment, markAsResolved, savedItemIds, toggleSaveItem } = useLostItems();
+                                                                  item,
+                                                                  visible,
+                                                                  onClose,
+                                                                }) => {
+  const { addComment, markAsResolved, deletePost, userId, savedItemIds, toggleSaveItem } =
+      useLostItems();
   const [commentText, setCommentText] = useState('');
+  const [isSendingComment, setIsSendingComment] = useState(false);
 
   if (!item) return null;
 
   const isSaved = savedItemIds.includes(item.id);
+  const isOwner = Boolean(userId && item.authorId === userId);
 
-  const handleSendComment = () => {
+  const handleSendComment = async () => {
     if (!commentText.trim()) return;
-    addComment(item.id, commentText);
-    setCommentText('');
+    setIsSendingComment(true);
+    try {
+      await addComment(item.id, commentText);
+      setCommentText('');
+    } catch (error) {
+      Alert.alert(
+          'No se pudo guardar el comentario',
+          error instanceof Error ? error.message : 'Intenta de nuevo más tarde.'
+      );
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
+
+  const handleMarkAsResolved = async () => {
+    try {
+      await markAsResolved(item.id);
+    } catch (error) {
+      Alert.alert(
+          'No se pudo actualizar la publicación',
+          error instanceof Error ? error.message : 'Intenta de nuevo más tarde.'
+      );
+    }
+  };
+
+  const handleDeletePost = () => {
+    Alert.alert(
+        'Eliminar publicación',
+        '¿Seguro que quieres eliminar esta publicación? Esta acción no se puede deshacer.',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Eliminar',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deletePost(item.id);
+                onClose();
+              } catch (error) {
+                Alert.alert(
+                    'No se pudo eliminar la publicación',
+                    error instanceof Error ? error.message : 'Intenta de nuevo más tarde.'
+                );
+              }
+            },
+          },
+        ]
+    );
   };
 
   const handleContact = () => {
@@ -48,170 +97,180 @@ export const ItemDetailModal: React.FC<ItemDetailModalProps> = ({
         Alert.alert('Contacto', `Comunícate al teléfono: ${item.author.phone}`);
       });
     } else {
-      Alert.alert('Contacto', `Pasa a prefectura de ${item.locationName} para reclamar tu objeto.`);
+      Alert.alert('Contacto', `Pasa a las oficinas de ${item.locationName} para reclamar tu objeto.`);
     }
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={onClose}
-    >
-      <View style={styles.backdrop}>
-        <View style={styles.sheetContainer}>
-          {/* Header Bar */}
-          <View style={styles.sheetHeader}>
-            <View style={styles.headerLeft}>
-              <View
-                style={[
-                  styles.typePill,
-                  item.type === 'found' ? styles.typeFound : styles.typeLost,
-                ]}
-              >
-                <Text style={styles.typeText}>
-                  {item.type === 'found' ? 'ENCONTRADO' : 'PERDIDO'}
-                </Text>
+      <Modal
+          visible={visible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={onClose}
+      >
+        <View style={styles.backdrop}>
+          <View style={styles.sheetContainer}>
+            {/* Header Bar */}
+            <View style={styles.sheetHeader}>
+              <View style={styles.headerLeft}>
+                <View
+                    style={[
+                      styles.typePill,
+                      item.type === 'found' ? styles.typeFound : styles.typeLost,
+                    ]}
+                >
+                  <Text style={styles.typeText}>
+                    {item.type === 'found' ? 'ENCONTRADO' : 'PERDIDO'}
+                  </Text>
+                </View>
+                <Text style={styles.categoryText}>{item.category}</Text>
               </View>
-              <Text style={styles.categoryText}>{item.category}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-              <Ionicons name="close" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
-            {/* Object Image */}
-            <View style={styles.imageContainer}>
-              <Image
-                source={{ uri: item.imageUrl }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-              <TouchableOpacity
-                style={styles.saveFloatingBtn}
-                onPress={() => toggleSaveItem(item.id)}
-                activeOpacity={0.8}
-              >
-                <Ionicons
-                  name={isSaved ? 'bookmark' : 'bookmark-outline'}
-                  size={20}
-                  color={isSaved ? THEME.colors.primaryDark : '#475569'}
-                />
+              <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+                <Ionicons name="close" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
 
-            {/* Title & Location */}
-            <View style={styles.bodySection}>
-              <Text style={styles.title}>{item.title}</Text>
-
-              <View style={styles.locationRow}>
-                <Ionicons name="location" size={18} color={THEME.colors.primaryDark} />
-                <Text style={styles.locationText}>{item.locationName}</Text>
-              </View>
-
-              <View style={styles.dateRow}>
-                <Ionicons name="time-outline" size={15} color="#64748B" />
-                <Text style={styles.dateText}>Publicado: {item.date}</Text>
-              </View>
-
-              {/* Description Box */}
-              <View style={styles.descCard}>
-                <Text style={styles.sectionHeader}>Descripción</Text>
-                <Text style={styles.descriptionText}>{item.description}</Text>
-              </View>
-
-              {/* Reporter Profile */}
-              <View style={styles.reporterCard}>
-                <View style={styles.reporterAvatar}>
-                  <Ionicons name="person" size={20} color={THEME.colors.primaryDark} />
-                </View>
-                <View style={styles.reporterInfo}>
-                  <Text style={styles.reporterName}>{item.author.name}</Text>
-                  <Text style={styles.reporterCareer}>
-                    {item.author.career || 'Estudiante UTCH'} • Mat. {item.author.studentId || 'Activo'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={styles.actionRow}>
+            <ScrollView style={styles.contentScroll} showsVerticalScrollIndicator={false}>
+              {/* Object Image */}
+              <View style={styles.imageContainer}>
+                <Image
+                    source={{ uri: item.imageUrl }}
+                    style={styles.image}
+                    resizeMode="cover"
+                />
                 <TouchableOpacity
-                  style={styles.contactBtn}
-                  onPress={handleContact}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="chatbubbles" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.contactBtnText}>Contactar Estudiante</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.resolveBtn, item.isResolved && styles.resolveBtnDone]}
-                  onPress={() => markAsResolved(item.id)}
-                  activeOpacity={0.8}
+                    style={styles.saveFloatingBtn}
+                    onPress={() => toggleSaveItem(item.id)}
+                    activeOpacity={0.8}
                 >
                   <Ionicons
-                    name={item.isResolved ? 'checkmark-circle' : 'checkmark-circle-outline'}
-                    size={20}
-                    color={item.isResolved ? '#FFFFFF' : THEME.colors.primaryDark}
+                      name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                      size={20}
+                      color={isSaved ? THEME.colors.primaryDark : '#475569'}
                   />
-                  <Text
-                    style={[
-                      styles.resolveBtnText,
-                      item.isResolved && styles.resolveBtnTextDone,
-                    ]}
-                  >
-                    {item.isResolved ? 'Recuperado' : 'Marcar'}
-                  </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* Comments Section */}
-              <View style={styles.commentsSection}>
-                <Text style={styles.sectionHeader}>
-                  Comentarios ({item.comments.length})
-                </Text>
+              {/* Title & Location */}
+              <View style={styles.bodySection}>
+                <Text style={styles.title}>{item.title}</Text>
 
-                {item.comments.length === 0 ? (
-                  <Text style={styles.emptyComments}>
-                    Aún no hay comentarios. Si reconoces este objeto, ¡ayuda al estudiante comentando!
-                  </Text>
-                ) : (
-                  item.comments.map((c) => (
-                    <View key={c.id} style={styles.commentItem}>
-                      <View style={styles.commentHeader}>
-                        <Text style={styles.commentAuthor}>{c.author}</Text>
-                        <Text style={styles.commentTime}>{c.time}</Text>
-                      </View>
-                      <Text style={styles.commentText}>{c.text}</Text>
-                    </View>
-                  ))
-                )}
+                <View style={styles.locationRow}>
+                  <Ionicons name="location" size={18} color={THEME.colors.primaryDark} />
+                  <Text style={styles.locationText}>{item.locationName}</Text>
+                </View>
 
-                {/* Add Comment Input */}
-                <View style={styles.inputRow}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Escribe un comentario..."
-                    placeholderTextColor="#94A3B8"
-                    value={commentText}
-                    onChangeText={setCommentText}
-                  />
+                <View style={styles.dateRow}>
+                  <Ionicons name="time-outline" size={15} color="#64748B" />
+                  <Text style={styles.dateText}>Publicado: {item.date}</Text>
+                </View>
+
+                {/* Description Box */}
+                <View style={styles.descCard}>
+                  <Text style={styles.sectionHeader}>Descripción</Text>
+                  <Text style={styles.descriptionText}>{item.description}</Text>
+                </View>
+
+                {/* Reporter Profile */}
+                <View style={styles.reporterCard}>
+                  <View style={styles.reporterAvatar}>
+                    <Ionicons name="person" size={20} color={THEME.colors.primaryDark} />
+                  </View>
+                  <View style={styles.reporterInfo}>
+                    <Text style={styles.reporterName}>{item.author.name}</Text>
+                    <Text style={styles.reporterCareer}>
+                      {item.author.career || 'Estudiante UTCH'} • Mat. {item.author.studentId || 'Activo'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Action Buttons */}
+                <View style={styles.actionRow}>
                   <TouchableOpacity
-                    style={styles.sendBtn}
-                    onPress={handleSendComment}
-                    activeOpacity={0.7}
+                      style={styles.contactBtn}
+                      onPress={handleContact}
+                      activeOpacity={0.8}
                   >
-                    <Ionicons name="send" size={16} color="#FFFFFF" />
+                    <Ionicons name="chatbubbles" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Text style={styles.contactBtnText}>Contactar</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                      style={[styles.resolveBtn, item.isResolved && styles.resolveBtnDone]}
+                      onPress={() => void handleMarkAsResolved()}
+                      activeOpacity={0.8}
+                  >
+                    <Ionicons
+                        name={item.isResolved ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                        size={20}
+                        color={item.isResolved ? '#FFFFFF' : THEME.colors.primaryDark}
+                    />
+                    <Text
+                        style={[
+                          styles.resolveBtnText,
+                          item.isResolved && styles.resolveBtnTextDone,
+                        ]}
+                    >
+                      {item.isResolved ? 'Recuperado' : 'Marcar'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Comments Section */}
+                <View style={styles.commentsSection}>
+                  <Text style={styles.sectionHeader}>Comentarios ({item.commentsCount})</Text>
+
+                  {item.comments.length === 0 ? (
+                      <Text style={styles.emptyComments}>
+                        Aún no hay comentarios. Si reconoces este objeto, habla con el estudiante.
+                      </Text>
+                  ) : (
+                      item.comments.map((c) => (
+                          <View key={c.id} style={styles.commentItem}>
+                            <View style={styles.commentHeader}>
+                              <Text style={styles.commentAuthor}>{c.author}</Text>
+                              <Text style={styles.commentTime}>{c.time}</Text>
+                            </View>
+                            <Text style={styles.commentText}>{c.text}</Text>
+                          </View>
+                      ))
+                  )}
+
+                  {/* Add Comment Input */}
+                  <View style={styles.inputRow}>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Escribe un comentario..."
+                        placeholderTextColor="#94A3B8"
+                        value={commentText}
+                        onChangeText={setCommentText}
+                    />
+                    <TouchableOpacity
+                        style={styles.sendBtn}
+                        onPress={() => void handleSendComment()}
+                        disabled={isSendingComment}
+                        activeOpacity={0.7}
+                    >
+                      <Ionicons name="send" size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {isOwner && (
+                    <TouchableOpacity
+                        style={styles.deletePostBtn}
+                        onPress={handleDeletePost}
+                        activeOpacity={0.8}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#E11D48" />
+                      <Text style={styles.deletePostBtnText}>Eliminar publicación</Text>
+                    </TouchableOpacity>
+                )}
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
   );
 };
 
@@ -414,6 +473,22 @@ const styles = StyleSheet.create({
   },
   resolveBtnTextDone: {
     color: '#FFFFFF',
+  },
+  deletePostBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E11D48',
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginBottom: 24,
+  },
+  deletePostBtnText: {
+    color: '#E11D48',
+    fontWeight: '700',
+    fontSize: 14,
+    marginLeft: 6,
   },
   commentsSection: {
     borderTopWidth: 1,
